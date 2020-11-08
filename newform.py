@@ -93,7 +93,7 @@ class Ui_Form(object):
         self.combo = QtWidgets.QComboBox(Form)
         self.combo.setGeometry(QtCore.QRect(110, 13, 120, 22))
         self.combo.setEditable(False)
-        self.combo.addItems(['Id', 'Имя', 'Группа'])
+        self.combo.addItems(['Id', 'Login', 'Имя', 'Группа'])
 
 
 
@@ -388,6 +388,8 @@ class Find_user(QtWidgets.QDialog):
             data = cur.fetchall()
         if self.param == 'Имя':
             t = self.text.split(' ')
+            t[0] = t[0][0].upper() + t[0][1:].lower()
+            t[1] = t[1][0].upper() + t[1][1:].lower()
             if len(t) == 2:
                 cur.execute(f"select login from users as a left join user_info as b on a.id = b.user_id"
                             f" where b.f_name = '{t[0]}' AND b.surname = '{t[1]}'")
@@ -407,6 +409,10 @@ class Find_user(QtWidgets.QDialog):
         if self.param == 'Группа':
             cur.execute(f"select login from users as a left join user_info as b on a.id = b.user_id"
                         f" where b.group_n = '{self.text}'")
+            data = cur.fetchall()
+        if self.param == 'Login':
+            cur.execute(f"select login from users as a left join user_info as b on a.id = b.user_id"
+                        f" where a.login = '{self.text}'")
             data = cur.fetchall()
         self.load_search_res(data)
 
