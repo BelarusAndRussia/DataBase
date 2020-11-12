@@ -60,6 +60,12 @@ class Ui_Form(object):
         self.change_userButton.setFont(font)
         self.change_userButton.setObjectName("change_userButton")
 
+
+        self.sendFileButton = QtWidgets.QPushButton(Form)
+        self.sendFileButton.setGeometry(QtCore.QRect(450, 480, 93, 31))
+        self.sendFileButton.setFont(font)
+        self.sendFileButton.setObjectName("change_userButton")
+
  #onlineTable
         self.online = QtWidgets.QTableWidget(Form)
         self.online.setColumnCount(1)
@@ -112,6 +118,7 @@ class Ui_Form(object):
         item = self.online.horizontalHeaderItem(0)
         item.setText(_translate("Form", "online"))
         self.change_userButton.setText(_translate("Form", "Выйти из аккаунта"))
+        self.sendFileButton.setText(_translate("Form", "Файл"))
 
 
 

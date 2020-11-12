@@ -1,5 +1,6 @@
 import socket
 import sys
+import os
 import time
 from threading import Thread
 import psycopg2
@@ -9,7 +10,7 @@ from PyQt5 import QtWidgets
 import newform
 
 tcpClientA = None
-
+BUFFER = 536870912#2097152
 conn = psycopg2.connect(dbname='test', user='postgres', password='101010', host='localhost', port='1234')
 conn.autocommit = True
 cur = conn.cursor()
@@ -30,6 +31,7 @@ class appCorrectData(QtWidgets.QMainWindow, Thread, Ui_Form):
         self.sendButton.clicked.connect(self.send)
         self.sendLine.returnPressed.connect(self.send)
         self.searchButton.clicked.connect(self.search)
+        self.sendFileButton.clicked.connect(self.sendFile)
 
         #form
     def send(self):
@@ -58,14 +60,50 @@ class appCorrectData(QtWidgets.QMainWindow, Thread, Ui_Form):
             tcpClientA.sendto(("[" + self.login + "] => join chat ").encode("utf-8"), (host, port))
             join = True
         try:
+            flag = 0
             while True:
-                data = tcpClientA.recv(1024)
-                self.chat.append(data.decode("utf-8"))
-                data1 = self.select_online()
-                self.load_data(data1)
+                data = tcpClientA.recv(BUFFER)
+                if data.decode("utf-8").endswith(">>"):
+                    buff_ = data.decode("utf-8")
+                    char1 = '<<'
+                    char2 = '>>'
+                    file_name = buff_[buff_.find(char1)+2 : buff_.find(char2)]
+                    flag = 1
+
+                if flag == 2:
+                    #b = data.decode("utf-8")[:-5]
+                    f1 = open(file_name, "wb")
+                    f1.write(data)
+                    f1.close()
+                    flag = 0
+
+                elif flag == 0 or flag == 1:
+                    self.chat.append(data.decode("utf-8"))
+                    data1 = self.select_online()
+                    self.load_data(data1)
+                    if flag == 1:
+                        flag = 2
+
         except:
             sys.exit()
 
+
+    def sendFile(self):
+        F = QtWidgets.QFileDialog.getOpenFileName(self, 'Select file', '')[0]
+        if F:
+            self.SIZE = os.path.getsize(F)
+            fname_ = F.split('/')
+            fname = fname_[-1]
+            self.chat.append("me: " + "<<" + fname + ">>")
+            tcpClientA.send(("[" + self.login + "]" + ": " + "<<" + fname + ">>").encode())
+            self.insert_message(fname)
+
+            f = open(F, "rb")
+            data = f.read(self.SIZE)
+            while (data):
+                if tcpClientA.send(data):
+                    data = f.read(self.SIZE)
+            f.close()
 
         #database
 
