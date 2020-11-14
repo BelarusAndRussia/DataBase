@@ -2,7 +2,7 @@ import socket, time
 host = socket.gethostbyname(socket.gethostname())
 port = 9090
 
-BUFFER = 536870912
+BUFFER = 1024
 clients = []
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s.bind((host, port))
@@ -14,9 +14,12 @@ while True:
         data, addr = s.recvfrom(BUFFER)
         if addr not in clients:
             clients.append(addr)
+        try:
+            if data.decode("utf-8").endswith(" <= left chat "):
+                clients.remove(addr)
+        except UnicodeDecodeError:
+            pass
 
-        if data.decode("utf-8").endswith(" <= left chat "):
-            clients.remove(addr)
 
         # itsatime = time.strftime("%Y-%m-%d-%H.%M.%S", time.localtime())
 

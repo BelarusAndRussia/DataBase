@@ -4,13 +4,14 @@ import os
 import time
 from threading import Thread
 import psycopg2
+import math
 
 from PyQt5 import QtWidgets
 
 import newform
 
 tcpClientA = None
-BUFFER = 536870912#2097152
+BUFFER = 1024#2097152
 conn = psycopg2.connect(dbname='test', user='postgres', password='101010', host='localhost', port='1234')
 conn.autocommit = True
 cur = conn.cursor()
@@ -60,30 +61,30 @@ class appCorrectData(QtWidgets.QMainWindow, Thread, Ui_Form):
             tcpClientA.sendto(("[" + self.login + "] => join chat ").encode("utf-8"), (host, port))
             join = True
         try:
-            flag = 0
             while True:
-                data = tcpClientA.recv(BUFFER)
-                if data.decode("utf-8").endswith(">>"):
-                    buff_ = data.decode("utf-8")
-                    char1 = '<<'
-                    char2 = '>>'
-                    file_name = buff_[buff_.find(char1)+2 : buff_.find(char2)]
-                    flag = 1
+                try:
+                    data, a = tcpClientA.recvfrom(BUFFER)
+                except:
+                    continue
+                try:
+                    if data.decode("utf-8").endswith(">>"):
+                        buff_ = data.decode("utf-8")
+                        char1 = '<<'
+                        char2 = '>>'
+                        file_name = buff_[buff_.find(char1) + 2 : buff_.find(char2)]
+                        id_ = int(buff_[buff_.find(" ") + 1: buff_.find(char1)])
+                        data = (buff_[: buff_.find(" ") + 1] + buff_[buff_.find(char1): ]).encode()
+                        cur.execute(f"select data from files where file_id = {id_}")
+                        data_for_file = bytes(cur.fetchone()[0])
+                        f1 = open(file_name, "wb")
+                        f1.write(data_for_file)
+                        f1.close()
+                except UnicodeDecodeError:
+                    pass
 
-                if flag == 2:
-                    #b = data.decode("utf-8")[:-5]
-                    f1 = open(file_name, "wb")
-                    f1.write(data)
-                    f1.close()
-                    flag = 0
-
-                elif flag == 0 or flag == 1:
-                    self.chat.append(data.decode("utf-8"))
-                    data1 = self.select_online()
-                    self.load_data(data1)
-                    if flag == 1:
-                        flag = 2
-
+                self.chat.append(data.decode("utf-8"))
+                data1 = self.select_online()
+                self.load_data(data1)
         except:
             sys.exit()
 
@@ -91,19 +92,28 @@ class appCorrectData(QtWidgets.QMainWindow, Thread, Ui_Form):
     def sendFile(self):
         F = QtWidgets.QFileDialog.getOpenFileName(self, 'Select file', '')[0]
         if F:
-            self.SIZE = os.path.getsize(F)
-            fname_ = F.split('/')
-            fname = fname_[-1]
-            self.chat.append("me: " + "<<" + fname + ">>")
-            tcpClientA.send(("[" + self.login + "]" + ": " + "<<" + fname + ">>").encode())
-            self.insert_message(fname)
-
+            # self.SIZE = os.path.getsize(F)
+            # count = math.ceil(self.SIZE / BUFFER)
+            fname_q = F.split('/')
+            fname = fname_q[-1]
+            # tcpClientA.send(("[" + self.login + "]" + ": " + str(count) + "<<" + fname + ">>").encode())
+            # self.insert_message(fname)
+            #
             f = open(F, "rb")
-            data = f.read(self.SIZE)
-            while (data):
-                if tcpClientA.send(data):
-                    data = f.read(self.SIZE)
+            data = f.read()
+            binary = psycopg2.Binary(data)
+            cur.execute('select count (*) from files')
+            id_ = cur.fetchone()[0]
+            id_ += 1
+            cur.execute("INSERT INTO files (file_id, filename, data) VALUES ({0}, '{1}', {2})".format(id_, fname, binary))
             f.close()
+            self.chat.append("me: " + "<<" + fname + ">>")
+            tcpClientA.send(("[" + self.login + "]" + ": " + str(id_) + "<<" + fname + ">>").encode())
+            self.insert_message(fname)
+            # while (data):
+            #     if tcpClientA.send(data):
+            #         data = f.read(BUFFER)
+            # f.close()
 
         #database
 
