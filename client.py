@@ -4,14 +4,13 @@ import os
 import time
 from threading import Thread
 import psycopg2
-import math
 
 from PyQt5 import QtWidgets
 
 import newform
 
 tcpClientA = None
-BUFFER = 1024#2097152
+BUFFER = 1024
 conn = psycopg2.connect(dbname='test', user='postgres', password='101010', host='localhost', port='1234')
 conn.autocommit = True
 cur = conn.cursor()
@@ -92,13 +91,8 @@ class appCorrectData(QtWidgets.QMainWindow, Thread, Ui_Form):
     def sendFile(self):
         F = QtWidgets.QFileDialog.getOpenFileName(self, 'Select file', '')[0]
         if F:
-            # self.SIZE = os.path.getsize(F)
-            # count = math.ceil(self.SIZE / BUFFER)
             fname_q = F.split('/')
             fname = fname_q[-1]
-            # tcpClientA.send(("[" + self.login + "]" + ": " + str(count) + "<<" + fname + ">>").encode())
-            # self.insert_message(fname)
-            #
             f = open(F, "rb")
             data = f.read()
             binary = psycopg2.Binary(data)
@@ -110,10 +104,6 @@ class appCorrectData(QtWidgets.QMainWindow, Thread, Ui_Form):
             self.chat.append("me: " + "<<" + fname + ">>")
             tcpClientA.send(("[" + self.login + "]" + ": " + str(id_) + "<<" + fname + ">>").encode())
             self.insert_message(fname)
-            # while (data):
-            #     if tcpClientA.send(data):
-            #         data = f.read(BUFFER)
-            # f.close()
 
         #database
 
